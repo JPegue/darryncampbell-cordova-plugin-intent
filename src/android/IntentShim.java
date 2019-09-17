@@ -463,13 +463,18 @@ public class IntentShim extends CordovaPlugin {
         JSONObject extras = obj.has("extras") ? obj.getJSONObject("extras") : null;
         Map<String, Object> extrasMap = new HashMap<String, Object>();
         Bundle bundle = null;
+        ArrayList<Bundle> bundleArrayList = null;
         String bundleKey = "";
+        String bundleArrayListKey = "";
         if (extras != null) {
             JSONArray extraNames = extras.names();
             for (int i = 0; i < extraNames.length(); i++) {
                 String key = extraNames.getString(i);
                 Object extrasObj = extras.get(key);
-                if (extrasObj instanceof JSONObject) {
+                if (extrasObj instanceof JSONArray) {
+                    bundleArrayListKey = key;
+                    bundleArrayList = toBundleArrayList((JSONArray) extras.get(key));
+                } else if (extrasObj instanceof JSONObject) {
                     //  The extra is a bundle
                     bundleKey = key;
                     bundle = toBundle((JSONObject) extras.get(key));
@@ -530,6 +535,9 @@ public class IntentShim extends CordovaPlugin {
 
         if (bundle != null)
             i.putExtra(bundleKey, bundle);
+
+        if (bundleArrayList != null)
+            i.putExtra(bundleArrayListKey, bundleArrayList);
 
         for (String key : extrasMap.keySet()) {
             Object value = extrasMap.get(key);
@@ -802,18 +810,11 @@ public class IntentShim extends CordovaPlugin {
                     }
                     else
                     {
-                        if (key.equals("PLUGIN_CONFIG")) {
-                            ArrayList<Bundle> bundleArray = new ArrayList<Bundle>();
-                            for (int k = 0; k < length; k++) {
-                                bundleArray.add(toBundle(jsonArray.getJSONObject(k)));
-                            }
-                            returnBundle.putParcelableArrayList(key, bundleArray);
-                        } else {
-                            Bundle[] bundleArray = new Bundle[length];
-                            for (int k = 0; k < length; k++)
-                                bundleArray[k] = toBundle(jsonArray.getJSONObject(k));
-                            returnBundle.putParcelableArray(key, bundleArray);
+                        ArrayList<Bundle> bundleArray = new ArrayList<Bundle>();
+                        for (int k = 0; k < length; k++) {
+                            bundleArray.add(toBundle(jsonArray.getJSONObject(k)));
                         }
+                        returnBundle.putParcelableArrayList(key, bundleArray);
                     }
                 }
                 else if (obj.get(key) instanceof JSONObject)
@@ -826,5 +827,19 @@ public class IntentShim extends CordovaPlugin {
 
 
         return returnBundle;
+    }
+
+    private ArrayList<Bundle> toBundleArrayList(final JSONArray jsonArray) {
+        ArrayList<Bundle> bundleArray = new ArrayList<Bundle>();
+        try {
+            for (int k = 0; k < length; k++) {
+                bundleArray.add(toBundle(jsonArray.getJSONObject(k)));
+            }
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return bundleArray;
     }
 }
